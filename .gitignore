@@ -1,0 +1,23 @@
+# Environment
+.env
+*.env
+
+# PHP dependencies (if you use Composer)
+vendor/
+
+# Front-end deps (if you use npm)
+node_modules/
+
+# Logs / temp
+*.log
+*.tmp
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Runtime files you don’t want in git
+public/uploads/
+cache/
