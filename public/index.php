@@ -11,6 +11,20 @@ $destinations = $stmt->fetchAll();
 $origin_code = $_GET['from'] ?? '';
 $destination_code = $_GET['to'] ?? '';
 
+// extra filters
+$max_stops = isset($_GET['max_stops']) && $_GET['max_stops'] !== ''
+    ? max(0, (int)$_GET['max_stops'])
+    : null;
+
+$min_rating = isset($_GET['min_rating']) && $_GET['min_rating'] !== ''
+    ? (float)$_GET['min_rating']
+    : null;
+
+$max_distance = isset($_GET['max_distance']) && $_GET['max_distance'] !== ''
+    ? max(0, (float)$_GET['max_distance'])
+    : null;
+
+
 function dest_label(array $d): string {
     return $d['city'] . ', ' . $d['country'] . ' (' . $d['code'] . ')';
 }
@@ -44,12 +58,44 @@ if ($origin_code && $destination_code) {
         $stmtHotels->execute(['dest' => $destination_code]);
         $hotels = $stmtHotels->fetchAll();
 
+        // foreach ($flights as $flight) {
+        //     $depart = new DateTime($flight['depart_date']);
+        //     $return = new DateTime($flight['return_date']);
+        //     $nights = max(1, $depart->diff($return)->days);
+
+        //     foreach ($hotels as $hotel) {
+        //         $total_price = $flight['price'] + $hotel['nightly_price'] * $nights;
+
+        //         $bundles[] = [
+        //             'flight'      => $flight,
+        //             'hotel'       => $hotel,
+        //             'nights'      => $nights,
+        //             'total_price' => $total_price,
+        //         ];
+        //     }
+        // }
+
         foreach ($flights as $flight) {
             $depart = new DateTime($flight['depart_date']);
             $return = new DateTime($flight['return_date']);
             $nights = max(1, $depart->diff($return)->days);
 
             foreach ($hotels as $hotel) {
+
+                // --------- APPLY FILTERS ----------
+                if ($max_stops !== null && (int)$flight['stops'] > $max_stops) {
+                    continue;
+                }
+
+                if ($min_rating !== null && (float)$hotel['rating'] < $min_rating) {
+                    continue;
+                }
+
+                if ($max_distance !== null && (float)$hotel['distance_to_center_km'] > $max_distance) {
+                    continue;
+                }
+                // --------- END FILTERS ------------
+
                 $total_price = $flight['price'] + $hotel['nightly_price'] * $nights;
 
                 $bundles[] = [
@@ -173,6 +219,59 @@ if ($origin_code && $destination_code) {
                     </div>
                 </div>
 
+                <!-- NEW FILTERS ROW -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Max stops -->
+                    <div>
+                        <label for="max_stops" class="block text-xs font-medium mb-1">
+                            Max stops (optional)
+                        </label>
+                        <input
+                            type="number"
+                            min="0"
+                            id="max_stops"
+                            name="max_stops"
+                            value="<?= htmlspecialchars($max_stops ?? '') ?>"
+                            class="block w-full rounded-lg border border-slate-600 bg-slate-900/60 px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                        >
+                    </div>
+
+                    <!-- Min hotel rating -->
+                    <div>
+                        <label for="min_rating" class="block text-xs font-medium mb-1">
+                            Min hotel rating (0–10)
+                        </label>
+                        <input
+                            type="number"
+                            step="0.1"
+                            min="0"
+                            max="10"
+                            id="min_rating"
+                            name="min_rating"
+                            value="<?= htmlspecialchars($min_rating ?? '') ?>"
+                            class="block w-full rounded-lg border border-slate-600 bg-slate-900/60 px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                        >
+                    </div>
+
+                    <!-- Max distance -->
+                    <div>
+                        <label for="max_distance" class="block text-xs font-medium mb-1">
+                            Max distance to center (km)
+                        </label>
+                        <input
+                            type="number"
+                            step="0.1"
+                            min="0"
+                            id="max_distance"
+                            name="max_distance"
+                            value="<?= htmlspecialchars($max_distance ?? '') ?>"
+                            class="block w-full rounded-lg border border-slate-600 bg-slate-900/60 px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                        >
+                    </div>
+                </div>
+                <!-- END FILTERS ROW -->
+
+
                 <div class="flex justify-end pt-2">
                     <button
                         type="submit"
@@ -244,15 +343,19 @@ if ($origin_code && $destination_code) {
                                 </div>
 
                                 <div class="flex flex-col items-end gap-2 md:items-end">
-                                    <div class="text-right">
-                                        <p class="text-lg font-bold text-emerald-400">
-                                            $<?= number_format($bundle['total_price'], 2) ?>
-                                        </p>
-                                        <p class="text-xs text-slate-400">
-                                            Flight: $<?= number_format($f['price'], 2) ?> + hotel
-                                        </p>
-                                    </div>
+                                <div class="text-right">
+                                    <p class="text-lg font-bold text-emerald-400">
+                                        $<?= number_format($bundle['total_price'], 2) ?>
+                                    </p>
+                                    <p class="text-xs text-slate-400">
+                                        Flight: $<?= number_format($f['price'], 2) ?> + hotel
+                                    </p>
+                                    <p class="text-[11px] text-slate-400 mt-1">
+                                        <?= $f['bag_included'] ? 'Bag included' : 'Bag not included' ?>
+                                    </p>
+                                </div>
 
+                                <div class="flex flex-col items-end gap-1">
                                     <?php if (!empty($_SESSION['user'])): ?>
                                         <form method="post" action="save_trip.php" class="mt-1">
                                             <input type="hidden" name="flight_id" value="<?= (int)$f['id'] ?>">
@@ -270,7 +373,19 @@ if ($origin_code && $destination_code) {
                                             </button>
                                         </form>
                                     <?php endif; ?>
+
+                                    <!-- Recheck price button – works even if not logged in -->
+                                    <a
+                                        href="recheck_price.php?flight_id=<?= (int)$f['id'] ?>
+                                            &hotel_id=<?= (int)$h['id'] ?>
+                                            &nights=<?= (int)$bundle['nights'] ?>
+                                            &current_total=<?= (float)$bundle['total_price'] ?>"
+                                        class="inline-flex items-center rounded-lg border border-slate-500 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-slate-700/60 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 focus:ring-offset-slate-900 transition"
+                                    >
+                                        Recheck price
+                                    </a>
                                 </div>
+                            </div>
                             </div>
                         <?php endforeach; ?>
                     </div>

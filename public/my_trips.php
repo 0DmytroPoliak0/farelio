@@ -81,6 +81,15 @@ $trips = $stmt->fetchAll();
             </div>
 
             <div class="px-8 pb-6 pt-4">
+                <?php if (isset($_GET['deleted'])): ?>
+                    <p class="mt-3 mb-1 text-sm text-emerald-300">
+                        Trip removed from your account.
+                    </p>
+                <?php elseif (isset($_GET['delete_error'])): ?>
+                    <p class="mt-3 mb-1 text-sm text-red-300">
+                        Could not remove this trip. Please try again.
+                    </p>
+                <?php endif; ?>
                 <?php if (empty($trips)): ?>
                     <p class="mt-3 text-sm text-slate-300">
                         You do not have any saved trips yet. Go back to the search and save a bundle.
@@ -109,6 +118,7 @@ $trips = $stmt->fetchAll();
                                         </span>
                                     </p>
                                 </div>
+                                <div class="flex flex-col items-end gap-2">
                                 <div class="text-right">
                                     <p class="text-lg font-bold text-emerald-400">
                                         $<?= number_format($t['total_price'], 2) ?>
@@ -119,7 +129,23 @@ $trips = $stmt->fetchAll();
                                     <p class="text-[10px] text-slate-500 mt-1">
                                         Saved on <?= htmlspecialchars($t['created_at']) ?>
                                     </p>
+                                        <p class="text-[11px] text-slate-400 mt-1">
+                                        <?= $t['bag_included'] ? 'Bag included' : 'Bag not included' ?>
+                                    </p>
                                 </div>
+
+                                <form method="post"
+                                    action="delete_trip.php"
+                                    onsubmit="return confirm('Remove this saved trip?');">
+                                    <input type="hidden" name="trip_id" value="<?= (int)$t['id'] ?>">
+                                    <button
+                                        type="submit"
+                                        class="inline-flex items-center rounded-lg border border-red-500 px-3 py-1.5 text-xs font-semibold text-red-300 hover:bg-red-500/10 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-slate-900 transition"
+                                    >
+                                        Remove
+                                    </button>
+                                </form>
+                            </div>
                             </div>
                         <?php endforeach; ?>
                     </div>
