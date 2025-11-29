@@ -8,7 +8,7 @@ Simple PHP app on XAMPP. Finds a few cheapest flight + hotel bundles and shows c
 2) Import `db/schema.sql`, then `db/seed.sql`.
 3) Copy `.env.example` to `.env` and set DB values.
 4) Place repo in `htdocs/triptotal`.
-5) Open http://localhost/triptotal/public
+5) Open http://localhost/triptotal/public (http://localhost/farelio/public/index.php)
 
 ## Folders
 - /public       entry point (index.php)
